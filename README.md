@@ -21,7 +21,7 @@ Best of all, it runs without installing anything. That means it also works on lo
 ## Run it on your own PC or laptop
 
 1. Open the **[Releases page](https://github.com/AshrafMMahdy/mindmap/releases/latest)** and download one of these (both need no installation):
-   - **MindMap-Desktop-win.zip** to run it as a desktop app, or
+   - **MindMap-Desktop-win.zip** to run it as a desktop app. (If your work or IT laptop blocks unknown `.exe` files, use the web option below instead.)
    - **MindMap-WebLauncher.zip** to run it in your web browser.
 2. Unzip it anywhere (your Desktop is fine).
 3. Open the folder and run it:
@@ -29,16 +29,6 @@ Best of all, it runs without installing anything. That means it also works on lo
    - Web: double click **start.bat**. It opens in your browser. Close the small window to stop it.
 
 Nothing gets installed.
-
-## Run it on a work or IT restricted PC
-
-This is the whole reason MindMap exists. No installation, and no admin rights.
-
-1. From the **[Releases page](https://github.com/AshrafMMahdy/mindmap/releases/latest)**, download a zip and copy it to the work PC (using your normal approved way of moving files).
-2. Unzip it.
-3. Open the folder and run **MindMap.exe** (desktop) or **start.bat** (web).
-
-The first time the desktop app opens, Windows may show a blue "Windows protected your PC" notice. Click **More info** then **Run anyway**. Nothing is installed and nothing leaves your machine, so it is friendly to strict work setups.
 
 ## Your maps stay with you
 
