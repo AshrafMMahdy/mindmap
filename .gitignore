@@ -7,3 +7,4 @@ release/
 .vite/
 .playwright-mcp/
 GHToken.txt
+.claude/
