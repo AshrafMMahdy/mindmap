@@ -1,0 +1,23 @@
+appId: com.whitehatiq.mindmap
+productName: MindMap
+copyright: MIT licensed
+
+directories:
+  output: release
+  buildResources: build
+
+# The renderer is fully bundled into dist/ by Vite, so no node_modules are
+# needed at runtime — only the built app, the Electron main, and package.json.
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+
+asar: true
+npmRebuild: false
+
+win:
+  # "dir" produces an unpacked folder (release/win-unpacked/MindMap.exe) that
+  # runs with no installation and no admin rights — copy the folder and run.
+  target:
+    - dir

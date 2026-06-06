@@ -1,0 +1,37 @@
+{
+  "name": "mindmap",
+  "productName": "MindMap",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A simple, self-owned mind-map app. Organize maps into projects, edit inline, export to PNG/PDF. Runs as a local web app or unpacked Electron portable — no install required.",
+  "license": "MIT",
+  "author": "MindMap",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "electron:start": "electron .",
+    "build:electron": "vite build && electron-builder --dir"
+  },
+  "dependencies": {
+    "@fontsource-variable/fraunces": "^5.2.9",
+    "@fontsource-variable/geist-mono": "^5.2.8",
+    "@fontsource-variable/hanken-grotesk": "^5.2.8",
+    "dexie": "^4.4.3",
+    "pinia": "^3.0.4",
+    "simple-mind-map": "^0.14.0-fix.2",
+    "vue": "^3.5.35"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "electron": "^42.3.3",
+    "electron-builder": "^26.15.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vue-tsc": "^3.3.3"
+  }
+}
