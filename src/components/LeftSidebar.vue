@@ -154,7 +154,7 @@ function projectMenu(e: MouseEvent, p: Project) {
 .head { display: flex; gap: 7px; padding: 12px 12px 8px; }
 .new-map { flex: 1; height: 38px; font-size: 13.5px; }
 .search { position: relative; padding: 0 12px 10px; }
-.search-icon { position: absolute; left: 23px; top: 17px; color: var(--text-faint); }
+.search-icon { position: absolute; left: 23px; top: 17px; transform: translateY(-50%); color: var(--text-faint); pointer-events: none; }
 .search-field { padding-left: 32px; padding-right: 30px; height: 34px; }
 .search-clear { position: absolute; right: 15px; top: 1px; width: 28px; height: 32px; }
 

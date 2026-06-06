@@ -75,18 +75,6 @@ const { engine, activeNodes } = useEngine()
 const { theme } = useTheme()
 const host = ref<HTMLElement | null>(null)
 
-// In dark mode, render maps with the dark "midnight" theme unless the map's own
-// theme is already dark — so the canvas matches the app chrome. The map's stored
-// (light) theme is preserved and used again in light mode.
-function effectiveTheme(m: { theme?: string } | null | undefined): string {
-  const stored = m?.theme || 'paper'
-  if (theme.value === 'dark') {
-    const opt = THEME_OPTIONS.find((t) => t.value === stored)
-    if (!opt || !opt.dark) return 'midnight'
-  }
-  return stored
-}
-
 const activeMap = computed(() => ws.activeMap)
 const hasActive = computed(() => activeNodes.value.length > 0)
 
@@ -96,8 +84,8 @@ let resizeObserver: ResizeObserver | null = null
 
 function onTheme(e: Event) {
   const value = (e.target as HTMLSelectElement).value
+  engine.setTheme(value)
   ws.setActiveView(value, activeMap.value?.layout ?? engine.getLayout())
-  engine.setTheme(effectiveTheme(activeMap.value))
 }
 function onLayout(e: Event) {
   const value = (e.target as HTMLSelectElement).value
@@ -122,7 +110,7 @@ function mountEngine() {
   const m = ws.activeMap
   engine.mount(host.value, {
     data: m ? plain(m.tree) : undefined,
-    theme: effectiveTheme(m),
+    theme: m?.theme,
     layout: m?.layout,
   })
 
@@ -164,12 +152,20 @@ watch(
     if (id === prev) return
     save.flush()
     const m = ws.activeMap
-    if (m) engine.load(plain(m.tree), effectiveTheme(m), m.layout)
+    if (m) engine.load(plain(m.tree), m.theme, m.layout)
   },
 )
 
-// canvas follows the app's light/dark mode live
-watch(theme, () => engine.setTheme(effectiveTheme(activeMap.value)))
+// Toggling app dark/light swaps the active map to a matching default theme.
+// The theme picker still applies ANY theme in either mode (no override), so
+// it works in dark mode too. Guarded so the initial theme set on load does not
+// clobber a map's saved theme.
+watch(theme, (t) => {
+  if (!engineMounted) return
+  const target = t === 'dark' ? 'midnight' : 'paper'
+  engine.setTheme(target)
+  ws.setActiveView(target, activeMap.value?.layout ?? engine.getLayout())
+})
 
 onBeforeUnmount(() => {
   save.flush()

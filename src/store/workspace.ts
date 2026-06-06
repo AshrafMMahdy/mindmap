@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { db } from '../storage/db'
 import { uid } from '../lib/id'
 import { plain } from '../lib/plain'
+import { useTheme } from '../lib/theme'
 import { defaultRoot } from '../engine/SimpleMindMapEngine'
 import type { MapDoc, MindMapNode, Project } from '../types'
 
@@ -92,11 +93,13 @@ export const useWorkspace = defineStore('workspace', {
 
     _newMap(projectId: string, name: string, tree?: MindMapNode): MapDoc {
       const now = Date.now()
+      // new maps start with a theme that matches the current app mode
+      const theme = useTheme().theme.value === 'dark' ? 'midnight' : DEFAULT_THEME
       return {
         id: uid(), projectId, name,
         tree: tree ?? defaultRoot(name),
         pinned: false, archived: false,
-        theme: DEFAULT_THEME, layout: DEFAULT_LAYOUT,
+        theme, layout: DEFAULT_LAYOUT,
         order: this.maps.filter((m) => m.projectId === projectId).length,
         createdAt: now, updatedAt: now,
       }
