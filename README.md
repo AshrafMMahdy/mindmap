@@ -42,6 +42,12 @@ This is the whole reason MindMap exists.
 - You do **not** need to install anything and you do **not** need admin rights.
 - Use the no install version above. It runs using tools that already come with Windows, so it usually does not trip the security blocks that stop normal programs.
 - Copy the unzipped folder onto the work PC (for example through your approved way of moving files) and double click **start.bat**.
+- If `start.bat` itself is blocked, you do not need it. Open **Windows PowerShell** and run this one line, pointing at the folder you unzipped:
+
+  ```
+  powershell -ExecutionPolicy Bypass -File "C:\path\to\serve.ps1"
+  ```
+
 - If your company blocks even that, the desktop app folder also runs by just double clicking **MindMap.exe**. The first time, Windows may show a blue "Windows protected your PC" notice for an unknown publisher. Click **More info** then **Run anyway**.
 
 Nothing is installed and nothing is sent over the internet, so it is friendly to strict environments.
