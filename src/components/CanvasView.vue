@@ -20,18 +20,12 @@
 
     <!-- look / export -->
     <div class="tb tb-tr">
-      <label class="t-select" title="Map theme">
-        <AppIcon name="palette" :size="15" />
-        <select :value="activeMap?.theme" @change="onTheme">
-          <option v-for="t in THEME_OPTIONS" :key="t.value" :value="t.value">{{ t.label }}</option>
-        </select>
-      </label>
-      <label class="t-select" title="Layout">
-        <AppIcon name="layout" :size="15" />
-        <select :value="activeMap?.layout" @change="onLayout">
-          <option v-for="l in LAYOUT_OPTIONS" :key="l.value" :value="l.value">{{ l.label }}</option>
-        </select>
-      </label>
+      <button class="t-btn" title="Map style" @click="openStyleMenu">
+        <AppIcon name="palette" :size="15" /> {{ currentStyleLabel }}
+      </button>
+      <button class="t-btn" title="Layout" @click="openLayoutMenu">
+        <AppIcon name="layout" :size="15" /> {{ currentLayoutLabel }}
+      </button>
       <button class="t-btn" title="Export or print this map" @click="openExport">
         <AppIcon name="download" :size="16" /> Export
       </button>
@@ -62,7 +56,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useWorkspace } from '../store/workspace'
 import { useEngine } from '../engine/useEngine'
 import { useTheme } from '../lib/theme'
-import { LAYOUT_OPTIONS, THEME_OPTIONS } from '../engine/themes'
+import { LAYOUT_OPTIONS, STYLE_OPTIONS, variantFor } from '../engine/themes'
 import { debounce } from '../lib/debounce'
 import { plain } from '../lib/plain'
 import { openMenu } from '../lib/menu'
@@ -78,19 +72,49 @@ const host = ref<HTMLElement | null>(null)
 const activeMap = computed(() => ws.activeMap)
 const hasActive = computed(() => activeNodes.value.length > 0)
 
+const currentStyle = computed(() =>
+  STYLE_OPTIONS.some((s) => s.value === activeMap.value?.theme)
+    ? (activeMap.value!.theme as string)
+    : 'paper',
+)
+const currentStyleLabel = computed(
+  () => STYLE_OPTIONS.find((s) => s.value === currentStyle.value)?.label ?? 'Style',
+)
+const currentLayoutLabel = computed(
+  () => LAYOUT_OPTIONS.find((l) => l.value === activeMap.value?.layout)?.label ?? 'Layout',
+)
+
 const save = debounce((id: string, tree: any) => ws.updateMapTree(id, tree), 500)
 
 let resizeObserver: ResizeObserver | null = null
 
-function onTheme(e: Event) {
-  const value = (e.target as HTMLSelectElement).value
-  engine.setTheme(value)
-  ws.setActiveView(value, activeMap.value?.layout ?? engine.getLayout())
+function applyStyle(style: string) {
+  ws.setActiveView(style, activeMap.value?.layout ?? engine.getLayout())
+  engine.setTheme(variantFor(style, theme.value === 'dark'))
 }
-function onLayout(e: Event) {
-  const value = (e.target as HTMLSelectElement).value
-  engine.setLayout(value)
-  ws.setActiveView(activeMap.value?.theme ?? engine.getTheme(), value)
+function applyLayout(layout: string) {
+  engine.setLayout(layout)
+  ws.setActiveView(currentStyle.value, layout)
+}
+function openStyleMenu(e: MouseEvent) {
+  openMenu(
+    e,
+    STYLE_OPTIONS.map((s) => ({
+      label: s.label,
+      icon: currentStyle.value === s.value ? 'check' : 'circle',
+      onClick: () => applyStyle(s.value),
+    })),
+  )
+}
+function openLayoutMenu(e: MouseEvent) {
+  openMenu(
+    e,
+    LAYOUT_OPTIONS.map((l) => ({
+      label: l.label,
+      icon: activeMap.value?.layout === l.value ? 'check' : 'circle',
+      onClick: () => applyLayout(l.value),
+    })),
+  )
 }
 
 function openExport(e: MouseEvent) {
@@ -110,7 +134,7 @@ function mountEngine() {
   const m = ws.activeMap
   engine.mount(host.value, {
     data: m ? plain(m.tree) : undefined,
-    theme: m?.theme,
+    theme: variantFor(m?.theme, theme.value === 'dark'),
     layout: m?.layout,
   })
 
@@ -152,19 +176,16 @@ watch(
     if (id === prev) return
     save.flush()
     const m = ws.activeMap
-    if (m) engine.load(plain(m.tree), m.theme, m.layout)
+    if (m) engine.load(plain(m.tree), variantFor(m.theme, theme.value === 'dark'), m.layout)
   },
 )
 
-// Toggling app dark/light swaps the active map to a matching default theme.
-// The theme picker still applies ANY theme in either mode (no override), so
-// it works in dark mode too. Guarded so the initial theme set on load does not
-// clobber a map's saved theme.
+// Toggling app dark/light keeps the chosen map style but swaps the background
+// to its light/dark variant. The style picker controls the style in either
+// mode; the app mode controls only the background.
 watch(theme, (t) => {
   if (!engineMounted) return
-  const target = t === 'dark' ? 'midnight' : 'paper'
-  engine.setTheme(target)
-  ws.setActiveView(target, activeMap.value?.layout ?? engine.getLayout())
+  engine.setTheme(variantFor(currentStyle.value, t === 'dark'))
 })
 
 onBeforeUnmount(() => {
@@ -209,17 +230,6 @@ onBeforeUnmount(() => {
 .t-icon:hover { background: var(--surface-2); color: var(--text); }
 .t-btn:disabled, .t-icon:disabled { opacity: 0.34; pointer-events: none; }
 .t-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
-
-.t-select {
-  display: inline-flex; align-items: center; gap: 5px;
-  height: 30px; padding: 0 6px 0 9px; border-radius: 9px; color: var(--text-muted);
-}
-.t-select:hover { background: var(--surface-2); }
-.t-select select {
-  appearance: none; border: 0; background: none; color: var(--text);
-  font-size: 12.5px; font-weight: 500; padding-right: 4px; cursor: pointer;
-}
-.t-select select:focus { outline: none; }
 
 .empty {
   position: absolute; inset: 0; z-index: 6;

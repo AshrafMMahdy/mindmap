@@ -4,7 +4,7 @@ import ExportPDF from 'simple-mind-map/src/plugins/ExportPDF.js'
 import Drag from 'simple-mind-map/src/plugins/Drag.js'
 import Select from 'simple-mind-map/src/plugins/Select.js'
 import KeyboardNavigation from 'simple-mind-map/src/plugins/KeyboardNavigation.js'
-import { CUSTOM_THEMES, DEFAULT_LAYOUT, DEFAULT_THEME } from './themes'
+import { DEFAULT_LAYOUT, DEFAULT_THEME, THEMES } from './themes'
 import type {
   ActiveNode,
   ExportFormat,
@@ -26,7 +26,7 @@ function registerPlugins() {
     .usePlugin(Drag)
     .usePlugin(Select)
     .usePlugin(KeyboardNavigation)
-  for (const [name, config] of Object.entries(CUSTOM_THEMES)) {
+  for (const [name, config] of Object.entries(THEMES)) {
     try {
       MindMap.defineTheme(name, config)
     } catch {
