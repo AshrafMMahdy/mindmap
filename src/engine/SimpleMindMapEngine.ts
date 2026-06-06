@@ -104,6 +104,13 @@ export class SimpleMindMapEngine implements MapEngine {
     this.mm.on('node_active', (_node: any, list: any[]) =>
       this.activeCb?.((list || []).map(wrapNode)),
     )
+    // center the initial map once it has finished its first render
+    const fitOnce = () => {
+      this.mm?.off('node_tree_render_end', fitOnce)
+      this.fit()
+    }
+    this.mm.on('node_tree_render_end', fitOnce)
+    setTimeout(() => this.fit(), 300)
   }
 
   destroy() {
