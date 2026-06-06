@@ -20,37 +20,25 @@ Best of all, it runs without installing anything. That means it also works on lo
 
 ## Run it on your own PC or laptop
 
-You have two easy options.
-
-**Option 1: the no install version (recommended)**
-
-1. Go to the **Releases** page of this project and download the file named `MindMap-web.zip`.
+1. Open the **[Releases page](https://github.com/AshrafMMahdy/mindmap/releases/latest)** and download one of these (both need no installation):
+   - **MindMap-Desktop-win.zip** to run it as a desktop app, or
+   - **MindMap-WebLauncher.zip** to run it in your web browser.
 2. Unzip it anywhere (your Desktop is fine).
-3. Double click **start.bat**.
-4. Your browser opens with MindMap ready to use.
+3. Open the folder and run it:
+   - Desktop: double click **MindMap.exe**.
+   - Web: double click **start.bat**. It opens in your browser. Close the small window to stop it.
 
-To stop it, just close the small black window that opened.
-
-**Option 2: the desktop app**
-
-Build the desktop version (see "For developers" below), then double click **MindMap.exe** inside the folder it creates. No installation needed.
+Nothing gets installed.
 
 ## Run it on a work or IT restricted PC
 
-This is the whole reason MindMap exists.
+This is the whole reason MindMap exists. No installation, and no admin rights.
 
-- You do **not** need to install anything and you do **not** need admin rights.
-- Use the no install version above. It runs using tools that already come with Windows, so it usually does not trip the security blocks that stop normal programs.
-- Copy the unzipped folder onto the work PC (for example through your approved way of moving files) and double click **start.bat**.
-- If `start.bat` itself is blocked, you do not need it. Open **Windows PowerShell** and run this one line, pointing at the folder you unzipped:
+1. From the **[Releases page](https://github.com/AshrafMMahdy/mindmap/releases/latest)**, download a zip and copy it to the work PC (using your normal approved way of moving files).
+2. Unzip it.
+3. Open the folder and run **MindMap.exe** (desktop) or **start.bat** (web).
 
-  ```
-  powershell -ExecutionPolicy Bypass -File "C:\path\to\serve.ps1"
-  ```
-
-- If your company blocks even that, the desktop app folder also runs by just double clicking **MindMap.exe**. The first time, Windows may show a blue "Windows protected your PC" notice for an unknown publisher. Click **More info** then **Run anyway**.
-
-Nothing is installed and nothing is sent over the internet, so it is friendly to strict environments.
+The first time the desktop app opens, Windows may show a blue "Windows protected your PC" notice. Click **More info** then **Run anyway**. Nothing is installed and nothing leaves your machine, so it is friendly to strict work setups.
 
 ## Your maps stay with you
 
