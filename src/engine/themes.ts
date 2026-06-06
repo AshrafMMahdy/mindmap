@@ -109,7 +109,7 @@ export const LAYOUT_OPTIONS: LayoutOption[] = [
   { value: 'logicalStructure', label: 'Logical →' },
   { value: 'logicalStructureLeft', label: 'Logical ←' },
   { value: 'mindMap', label: 'Mind map' },
-  { value: 'organizationStructure', label: 'Org chart' },
+  { value: 'organizationStructure', label: 'Org chart / WBS' },
   { value: 'catalogOrganization', label: 'Catalog' },
   { value: 'timeline', label: 'Timeline' },
   { value: 'fishbone', label: 'Fishbone' },

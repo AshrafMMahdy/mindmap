@@ -2,6 +2,8 @@
 
 A simple app to map out your ideas and projects, then pick them back up later without losing your place.
 
+> Built on the excellent open-source [simple-mind-map](https://github.com/wanglin2/mind-map) by wanglin2. This app leans heavily on that project for the mind-map canvas and borrows a lot of its ideas. Huge thanks to them.
+
 Create a map in one click, group your maps into projects, edit ideas right on the screen, drop in pictures and links, tick things off as done, and save or print your map as a picture or PDF.
 
 Best of all, it runs without installing anything. That means it also works on locked down work laptops where you are not allowed to install software.
