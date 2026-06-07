@@ -40,6 +40,14 @@ export function defaultRoot(text = 'Central Idea'): MindMapNode {
   return { data: { text }, children: [] }
 }
 
+/** Plain-text extract of an HTML string (used to give the canvas a note preview). */
+function htmlToText(html: string): string {
+  if (!html) return ''
+  const div = document.createElement('div')
+  div.innerHTML = html
+  return (div.textContent || '').replace(/ /g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 /** Wrap a raw simple-mind-map node instance in our stable ActiveNode handle. */
 function wrapNode(raw: any): ActiveNode {
   const d = (): any => raw?.nodeData?.data ?? {}
@@ -62,9 +70,23 @@ function wrapNode(raw: any): ActiveNode {
     get note() {
       return d().note ?? ''
     },
+    get richNote() {
+      return d().richNote ?? ''
+    },
+    get noteMode() {
+      return d().noteMode === 'freeform' ? 'freeform' : 'fields'
+    },
     setText: (t: string) => raw.setText(t),
     setHyperlink: (link: string, title?: string) => raw.setHyperlink(link, title ?? ''),
     setNote: (note: string) => raw.setNote(note),
+    setRichNote: (html: string) => {
+      raw.setData({ richNote: html })
+      // keep a plain-text excerpt as the engine note so the node shows a note
+      // indicator + tooltip preview on the canvas
+      const text = htmlToText(html)
+      raw.setNote(text ? text.slice(0, 600) : '')
+    },
+    setNoteMode: (mode: 'fields' | 'freeform') => raw.setData({ noteMode: mode }),
     setImage: (img: ImageInput | null) => raw.setImage(img),
     setAttachment: (url: string, name?: string) => raw.setAttachment(url, name ?? ''),
     setDone: (done: boolean) => {
@@ -208,6 +230,13 @@ export class SimpleMindMapEngine implements MapEngine {
     // possible"); fitting is best-effort, so swallow it.
     try {
       this.mm?.view?.fit()
+    } catch {
+      /* ignore */
+    }
+  }
+  focusNode(uid: string) {
+    try {
+      this.mm?.execCommand('GO_TARGET_NODE', uid)
     } catch {
       /* ignore */
     }

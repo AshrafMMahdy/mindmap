@@ -45,9 +45,13 @@ export interface ActiveNode {
   readonly done: boolean
   readonly hyperlink: string
   readonly note: string
+  readonly richNote: string
+  readonly noteMode: 'fields' | 'freeform'
   setText(text: string): void
   setHyperlink(link: string, title?: string): void
   setNote(note: string): void
+  setRichNote(html: string): void
+  setNoteMode(mode: 'fields' | 'freeform'): void
   setImage(img: ImageInput | null): void
   setAttachment(url: string, name?: string): void
   setDone(done: boolean): void
@@ -83,6 +87,8 @@ export interface MapEngine {
   zoomIn(): void
   zoomOut(): void
   fit(): void
+  /** Center the view on a node (by uid) and select it. */
+  focusNode(uid: string): void
 
   // rich content onto the active node (used by the paste handler)
   insertImageToActive(img: ImageInput): void

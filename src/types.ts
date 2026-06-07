@@ -22,6 +22,11 @@ export interface MindMapNodeData {
   hyperlink?: string
   hyperlinkTitle?: string
   note?: string
+  /** Free-form rich note (HTML), edited in the right panel. Not used by the
+   *  engine's own rendering; persisted in the tree so it exports with the map. */
+  richNote?: string
+  /** Which note editor the right panel shows for this node. */
+  noteMode?: 'fields' | 'freeform'
   /** Embedded image as a data URL (from paste). */
   image?: string
   imageTitle?: string
@@ -52,10 +57,27 @@ export interface MapDoc {
 }
 
 /** The full exportable workspace (used for JSON export/import). */
+/** A one-per-node reminder. Stored in its own table so the left sidebar can
+ *  list them chronologically across all projects and maps. */
+export interface Reminder {
+  id: string
+  mapId: string
+  projectId: string
+  nodeUid: string
+  nodeText: string
+  /** Epoch milliseconds for the due moment. */
+  due: number
+  /** False = date only (no specific time). */
+  hasTime: boolean
+  createdAt: number
+  updatedAt: number
+}
+
 export interface Workspace {
   version: number
   projects: Project[]
   maps: MapDoc[]
+  reminders?: Reminder[]
   exportedAt?: number
 }
 

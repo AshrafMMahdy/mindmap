@@ -188,6 +188,18 @@ watch(theme, (t) => {
   engine.setTheme(variantFor(currentStyle.value, t === 'dark'))
 })
 
+// when a reminder is clicked, center + select its node once the map has loaded
+watch(
+  () => ws.focusNodeUid,
+  (uid) => {
+    if (!uid) return
+    setTimeout(() => {
+      engine.focusNode(uid)
+      ws.consumeFocus()
+    }, 400)
+  },
+)
+
 onBeforeUnmount(() => {
   save.flush()
   resizeObserver?.disconnect()

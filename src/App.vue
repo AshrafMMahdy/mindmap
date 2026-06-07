@@ -33,10 +33,23 @@
       </div>
     </header>
 
-    <div class="body">
+    <div class="body" :class="{ resizing: isResizing }">
       <LeftSidebar class="pane pane-left reveal" style="animation-delay: 0.05s" />
+      <div
+        class="resize-h left-h"
+        title="Drag to resize · double-click to reset"
+        @pointerdown="startResize('left', $event)"
+        @dblclick="resetLeft()"
+      />
       <CanvasView class="pane pane-center reveal" style="animation-delay: 0.1s" />
       <RightSidebar class="pane pane-right" />
+      <div
+        v-if="ws.rightMode !== 'empty'"
+        class="resize-h right-h"
+        title="Drag to resize · double-click to reset"
+        @pointerdown="startResize('right', $event)"
+        @dblclick="resetRight()"
+      />
     </div>
 
     <input ref="fileInput" type="file" accept="application/json,.json" hidden @change="onImportFile" />
@@ -57,6 +70,7 @@ import ConfirmHost from './components/ConfirmHost.vue'
 import AppIcon from './components/AppIcon.vue'
 import { confirm } from './lib/confirm'
 import { useTheme } from './lib/theme'
+import { useSidebars } from './lib/sidebars'
 import {
   downloadWorkspace,
   exportWorkspace,
@@ -71,6 +85,32 @@ const activeProjectName = computed(
 
 // ---- theme (shared via composable so the canvas follows it too) ----
 const { theme, toggle: toggleTheme, init: initTheme } = useTheme()
+
+// ---- resizable sidebars ----
+const { leftW, rightW, init: initSidebars, setLeft, setRight, resetLeft, resetRight } = useSidebars()
+const isResizing = ref(false)
+function startResize(side: 'left' | 'right', e: PointerEvent) {
+  e.preventDefault()
+  isResizing.value = true
+  const startX = e.clientX
+  const startW = side === 'left' ? leftW.value : rightW.value
+  const onMove = (ev: PointerEvent) => {
+    const dx = ev.clientX - startX
+    if (side === 'left') setLeft(startW + dx)
+    else setRight(startW - dx)
+  }
+  const onUp = () => {
+    isResizing.value = false
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    document.body.style.userSelect = ''
+    document.body.style.cursor = ''
+  }
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = 'col-resize'
+}
 
 // ---- workspace import / export ----
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -112,6 +152,7 @@ async function onImportFile(e: Event) {
 
 onMounted(() => {
   initTheme()
+  initSidebars()
   ws.init()
 })
 </script>
@@ -151,12 +192,27 @@ onMounted(() => {
 .divider { width: 1px; height: 22px; background: var(--border); margin: 0 6px; }
 
 .body {
+  position: relative;
   display: grid;
   grid-template-columns: var(--left-w) minmax(0, 1fr) 0px;
   min-height: 0;
   transition: grid-template-columns 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .app.right-open .body { grid-template-columns: var(--left-w) minmax(0, 1fr) var(--right-w); }
+.body.resizing { transition: none; }
+
+/* drag handles sitting over the pane boundaries */
+.resize-h {
+  position: absolute; top: 0; bottom: 0; width: 9px; z-index: 7;
+  cursor: col-resize; touch-action: none;
+}
+.left-h { left: calc(var(--left-w) - 4px); }
+.right-h { right: calc(var(--right-w) - 4px); }
+.resize-h::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 4px; width: 2px;
+  background: transparent; transition: background 0.15s;
+}
+.resize-h:hover::after, .body.resizing .resize-h::after { background: var(--accent); }
 
 .pane { min-width: 0; min-height: 0; }
 .pane-left { border-right: 1px solid var(--border); background: var(--surface); }

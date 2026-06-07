@@ -3,8 +3,12 @@ import { WORKSPACE_VERSION, type Workspace } from '../types'
 
 /** Read the whole workspace out of IndexedDB. */
 export async function exportWorkspace(): Promise<Workspace> {
-  const [projects, maps] = await Promise.all([db.projects.toArray(), db.maps.toArray()])
-  return { version: WORKSPACE_VERSION, projects, maps, exportedAt: Date.now() }
+  const [projects, maps, reminders] = await Promise.all([
+    db.projects.toArray(),
+    db.maps.toArray(),
+    db.reminders.toArray(),
+  ])
+  return { version: WORKSPACE_VERSION, projects, maps, reminders, exportedAt: Date.now() }
 }
 
 /** Trigger a browser download of a blob. Works on localhost, file://, Electron. */
@@ -46,8 +50,10 @@ export async function importWorkspaceFromFile(
   if (mode === 'replace') {
     await db.projects.clear()
     await db.maps.clear()
+    await db.reminders.clear()
   }
   await db.projects.bulkPut(data.projects)
   await db.maps.bulkPut(data.maps)
+  if (Array.isArray(data.reminders)) await db.reminders.bulkPut(data.reminders)
   return { projects: data.projects.length, maps: data.maps.length }
 }

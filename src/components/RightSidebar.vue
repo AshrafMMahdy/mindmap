@@ -8,6 +8,8 @@
       </header>
 
       <div v-if="one" class="scroll r-body">
+        <ReminderBar />
+
         <label class="r-label">Text</label>
         <input v-model="text" class="field" @keydown.enter.prevent="commitText" @blur="commitText" />
 
@@ -16,20 +18,36 @@
           {{ done ? 'Marked done' : 'Mark done' }}
         </button>
 
-        <label class="r-label">Link</label>
-        <div class="row">
-          <input v-model="link" class="field" placeholder="https://, mailto:, C:\path…" @keydown.enter.prevent="commitLink" @blur="commitLink" />
-          <button class="icon-btn" title="Open link" :disabled="!link" @click="openLink"><AppIcon name="link" :size="16" /></button>
+        <div class="mode-row">
+          <span class="r-label flat">Note</span>
+          <div class="seg">
+            <button :class="{ active: mode === 'fields' }" @click="setMode('fields')">Fields</button>
+            <button :class="{ active: mode === 'freeform' }" @click="setMode('freeform')">Free-form</button>
+          </div>
+          <button class="btn-mini" title="Export this note" @click="openExportMenu">
+            <AppIcon name="download" :size="14" /> Export
+          </button>
         </div>
 
-        <label class="r-label">Note</label>
-        <textarea v-model="note" class="field area" rows="5" placeholder="Longer note for this node…" @input="saveNote" @blur="flushNote" />
+        <template v-if="mode === 'fields'">
+          <label class="r-label">Link</label>
+          <div class="row">
+            <input v-model="link" class="field" placeholder="https://, mailto:, C:\path…" @keydown.enter.prevent="commitLink" @blur="commitLink" />
+            <button class="icon-btn" title="Open link" :disabled="!link" @click="openLink"><AppIcon name="link" :size="16" /></button>
+          </div>
+          <div class="img-row">
+            <button class="btn block" @click="pickImage"><AppIcon name="image" :size="16" /> Add / replace image</button>
+            <button v-if="hasImage" class="btn block subtle" @click="removeImage"><AppIcon name="x" :size="15" /> Remove image</button>
+          </div>
+        </template>
 
-        <label class="r-label">Image</label>
-        <button class="btn block" @click="pickImage"><AppIcon name="image" :size="16" /> Add / replace image</button>
-        <button v-if="hasImage" class="btn block subtle" @click="removeImage"><AppIcon name="x" :size="15" /> Remove image</button>
+        <RichEditor
+          v-model="richNote"
+          :compact="mode === 'fields'"
+          placeholder="Write a note…  ( -  •   # heading   [] checkbox )"
+          class="note-editor"
+        />
 
-        <p class="hint"><AppIcon name="sparkle" :size="13" /> Paste an image or link straight onto a node on the canvas.</p>
         <input ref="imgInput" type="file" accept="image/*" hidden @change="onImage" />
       </div>
 
@@ -47,30 +65,24 @@
         <span class="proj-title">{{ ws.selectedProject?.name }}</span>
         <button class="icon-btn" title="Close" @click="closePanel"><AppIcon name="x" :size="16" /></button>
       </header>
-      <div class="notes-toolbar">
-        <button class="icon-btn sm" title="Bold" @mousedown.prevent="format('bold')"><b>B</b></button>
-        <button class="icon-btn sm" title="Italic" @mousedown.prevent="format('italic')"><i>I</i></button>
-        <button class="icon-btn sm" title="Bulleted list" @mousedown.prevent="format('insertUnorderedList')"><AppIcon name="layout" :size="15" /></button>
-        <button class="icon-btn sm" title="Checklist line" @mousedown.prevent="insertCheck"><AppIcon name="check" :size="15" /></button>
+      <div class="scroll r-body">
+        <RichEditor v-model="projectNotes" placeholder="Notes for this project — meeting points, links, to-dos…" />
       </div>
-      <div
-        ref="editor"
-        class="scroll notes"
-        contenteditable="true"
-        data-placeholder="Notes for this project — meeting points, links, to-dos…"
-        @input="onNotesInput"
-      />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useWorkspace } from '../store/workspace'
 import { useEngine } from '../engine/useEngine'
 import { debounce } from '../lib/debounce'
 import { fileToDataUrl, fitImage, imageSize } from '../lib/image'
+import { exportNote, type NoteFormat } from '../export/noteExport'
+import { openMenu } from '../lib/menu'
 import AppIcon from './AppIcon.vue'
+import RichEditor from './RichEditor.vue'
+import ReminderBar from './ReminderBar.vue'
 
 const ws = useWorkspace()
 const { activeNodes } = useEngine()
@@ -78,12 +90,13 @@ const { activeNodes } = useEngine()
 const count = computed(() => activeNodes.value.length)
 const one = computed(() => (activeNodes.value.length === 1 ? activeNodes.value[0] : null))
 
-// local mirrors of the active node's fields
+// local mirrors of the active node
 const text = ref('')
 const link = ref('')
-const note = ref('')
 const done = ref(false)
 const hasImage = ref(false)
+const richNote = ref('')
+const mode = ref<'fields' | 'freeform'>('fields')
 
 watch(
   one,
@@ -91,40 +104,43 @@ watch(
     if (!n) return
     text.value = n.text
     link.value = n.hyperlink
-    note.value = n.note
     done.value = n.done
     hasImage.value = !!n.data.image
+    richNote.value = n.richNote
+    mode.value = n.noteMode
   },
   { immediate: true },
 )
 
+const saveRich = debounce(() => {
+  if (one.value && richNote.value !== one.value.richNote) one.value.setRichNote(richNote.value)
+}, 500)
+watch(richNote, () => saveRich())
+
+function setMode(m: 'fields' | 'freeform') {
+  mode.value = m
+  one.value?.setNoteMode(m)
+}
+
 function commitText() {
-  const n = one.value
-  if (n && text.value !== n.text) n.setText(text.value)
+  if (one.value && text.value !== one.value.text) one.value.setText(text.value)
 }
 function commitLink() {
-  const n = one.value
-  if (n && link.value !== n.hyperlink) n.setHyperlink(link.value)
+  if (one.value && link.value !== one.value.hyperlink) one.value.setHyperlink(link.value)
 }
 function openLink() {
   if (link.value) window.open(link.value, '_blank')
 }
-const saveNote = debounce(() => one.value?.setNote(note.value), 500)
-function flushNote() {
-  saveNote.flush()
-  one.value?.setNote(note.value)
-}
 function toggleDone() {
-  const n = one.value
-  if (!n) return
+  if (!one.value) return
   done.value = !done.value
-  n.setDone(done.value)
+  one.value.setDone(done.value)
 }
 function setAllDone(v: boolean) {
   activeNodes.value.forEach((n) => n.setDone(v))
 }
 
-// images
+// images (fields mode)
 const imgInput = ref<HTMLInputElement | null>(null)
 function pickImage() {
   imgInput.value?.click()
@@ -145,37 +161,41 @@ function removeImage() {
   hasImage.value = false
 }
 
+function openExportMenu(e: MouseEvent) {
+  const html = richNote.value || ''
+  const title = one.value?.text || 'Note'
+  const item = (label: string, icon: string, format: NoteFormat) => ({
+    label,
+    icon,
+    onClick: () => exportNote(format, html, title),
+  })
+  openMenu(e, [
+    item('Text (.txt)', 'note', 'txt'),
+    item('Markdown (.md)', 'note', 'md'),
+    item('PDF', 'printer', 'pdf'),
+    item('Word (.doc)', 'note', 'docx'),
+    item('Picture (.png)', 'image', 'png'),
+  ])
+}
+
 function closePanel() {
   ws.selectedProjectId = null
   ws.rightMode = 'empty'
 }
 
-// ---- project notes (contenteditable) ----
-const editor = ref<HTMLElement | null>(null)
-const saveNotes = debounce(() => {
+// ---- category notes ----
+const projectNotes = ref('')
+const saveProjectNotes = debounce(() => {
   const id = ws.selectedProjectId
-  if (id && editor.value) ws.setProjectNotes(id, editor.value.innerHTML)
+  if (id) ws.setProjectNotes(id, projectNotes.value)
 }, 500)
-function onNotesInput() {
-  saveNotes()
-}
-function format(cmd: string) {
-  editor.value?.focus()
-  document.execCommand(cmd, false)
-  saveNotes()
-}
-function insertCheck() {
-  editor.value?.focus()
-  document.execCommand('insertHTML', false, '☐ ')
-  saveNotes()
-}
+watch(projectNotes, () => {
+  if (ws.rightMode === 'project') saveProjectNotes()
+})
 watch(
   () => [ws.rightMode, ws.selectedProjectId],
   () => {
-    if (ws.rightMode !== 'project') return
-    nextTick(() => {
-      if (editor.value) editor.value.innerHTML = ws.selectedProject?.notes || ''
-    })
+    if (ws.rightMode === 'project') projectNotes.value = ws.selectedProject?.notes || ''
   },
   { immediate: true },
 )
@@ -190,9 +210,9 @@ watch(
 
 .r-body { flex: 1; padding: 16px; }
 .r-label { display: block; margin: 14px 0 6px; font-size: 11.5px; font-weight: 600; color: var(--text-muted); }
-.r-label:first-child { margin-top: 0; }
+.r-label.flat { margin: 0; }
 .row { display: flex; gap: 6px; }
-.area { height: auto; padding: 10px 12px; resize: vertical; line-height: 1.5; }
+.img-row { margin-top: 10px; }
 
 .done-toggle {
   display: flex; align-items: center; gap: 9px; width: 100%; margin-top: 14px;
@@ -205,19 +225,17 @@ watch(
 .done-toggle.on { border-color: var(--done); background: color-mix(in srgb, var(--done) 12%, transparent); color: var(--done); }
 .done-toggle.on .check { background: var(--done); border-color: var(--done); }
 
+.mode-row { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { padding: 4px 10px; font-size: 12px; font-weight: 500; color: var(--text-muted); background: var(--surface); }
+.seg button:hover { color: var(--text); }
+.seg button.active { background: var(--accent-soft); color: var(--accent); }
+.btn-mini { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px; border-radius: 8px; font-size: 12px; color: var(--text-muted); }
+.btn-mini:hover { background: var(--surface-2); color: var(--text); }
+
+.note-editor { margin-top: 4px; }
+
 .btn.block { width: 100%; justify-content: center; margin-top: 8px; }
 .btn.subtle { background: transparent; box-shadow: none; color: var(--text-muted); }
-.hint { display: flex; gap: 7px; align-items: flex-start; margin-top: 18px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text-muted); font-size: 12px; line-height: 1.5; }
-.hint .icon { color: var(--clay); margin-top: 1px; flex: none; }
 .multi { color: var(--text-muted); margin: 0 0 12px; }
-
-.notes-toolbar { display: flex; gap: 2px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
-.icon-btn.sm { width: 30px; height: 30px; font-family: var(--font-display); }
-.notes {
-  flex: 1; padding: 16px; outline: none; line-height: 1.6; font-size: 13.5px;
-  overflow-wrap: anywhere;
-}
-.notes:empty::before { content: attr(data-placeholder); color: var(--text-faint); }
-.notes :deep(ul) { padding-left: 20px; }
-.notes :deep(a) { color: var(--accent); }
 </style>

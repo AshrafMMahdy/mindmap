@@ -12,6 +12,8 @@
     </div>
 
     <div class="scroll list">
+      <RemindersList />
+
       <section v-if="ws.pinnedMaps.length" class="group">
         <div class="group-label"><AppIcon name="pin" :size="12" /><span class="section-label">Pinned</span></div>
         <MapRow v-for="m in ws.pinnedMaps" :key="m.id" :map="m" />
@@ -71,6 +73,7 @@ import { confirm } from '../lib/confirm'
 import type { Project } from '../types'
 import AppIcon from './AppIcon.vue'
 import MapRow from './MapRow.vue'
+import RemindersList from './RemindersList.vue'
 
 const ws = useWorkspace()
 

@@ -3,7 +3,7 @@ import { db } from '../storage/db'
 import { uid } from '../lib/id'
 import { plain } from '../lib/plain'
 import { defaultRoot } from '../engine/SimpleMindMapEngine'
-import type { MapDoc, MindMapNode, Project } from '../types'
+import type { MapDoc, MindMapNode, Project, Reminder } from '../types'
 
 export type RightMode = 'empty' | 'project' | 'node'
 
@@ -44,6 +44,9 @@ export const useWorkspace = defineStore('workspace', {
     search: '',
     showArchived: false,
     loaded: false,
+    reminders: [] as Reminder[],
+    /** Node uid the canvas should center on next (set when a reminder is clicked). */
+    focusNodeUid: null as string | null,
   }),
 
   getters: {
@@ -62,13 +65,21 @@ export const useWorkspace = defineStore('workspace', {
         .filter((m) => m.projectId === projectId && !m.archived && !m.pinned)
         .filter((m) => matchSearch(m, s.search))
         .sort((a, b) => a.order - b.order),
+    orderedReminders: (s) => [...s.reminders].sort((a, b) => a.due - b.due),
+    reminderFor: (s) => (mapId: string, nodeUid: string) =>
+      s.reminders.find((r) => r.mapId === mapId && r.nodeUid === nodeUid) ?? null,
   },
 
   actions: {
     async init() {
-      const [projects, maps] = await Promise.all([db.projects.toArray(), db.maps.toArray()])
+      const [projects, maps, reminders] = await Promise.all([
+        db.projects.toArray(),
+        db.maps.toArray(),
+        db.reminders.toArray(),
+      ])
       this.projects = projects
       this.maps = maps
+      this.reminders = reminders
       if (this.projects.length === 0) await this.seed()
       if (!this.activeMapId) {
         this.activeMapId = this.maps.find((m) => !m.archived)?.id ?? null
@@ -127,6 +138,11 @@ export const useWorkspace = defineStore('workspace', {
       this.projects = this.projects.filter((p) => p.id !== id)
       await db.maps.bulkDelete(removedMapIds)
       await db.projects.delete(id)
+      const remIds = this.reminders.filter((r) => removedMapIds.includes(r.mapId)).map((r) => r.id)
+      if (remIds.length) {
+        this.reminders = this.reminders.filter((r) => !removedMapIds.includes(r.mapId))
+        await db.reminders.bulkDelete(remIds)
+      }
       if (this.selectedProjectId === id) {
         this.selectedProjectId = null
         this.rightMode = 'empty'
@@ -170,6 +186,11 @@ export const useWorkspace = defineStore('workspace', {
     async deleteMap(id: string) {
       this.maps = this.maps.filter((m) => m.id !== id)
       await db.maps.delete(id)
+      const remIds = this.reminders.filter((r) => r.mapId === id).map((r) => r.id)
+      if (remIds.length) {
+        this.reminders = this.reminders.filter((r) => r.mapId !== id)
+        await db.reminders.bulkDelete(remIds)
+      }
       if (this.activeMapId === id) {
         this.activeMapId = this.maps.find((m) => !m.archived)?.id ?? null
       }
@@ -227,6 +248,7 @@ export const useWorkspace = defineStore('workspace', {
       m.tree = tree
       m.updatedAt = Date.now()
       await db.maps.put(plain(m))
+      await this.reconcileMapReminders(id, tree)
     },
 
     /** Persist theme/layout changes for the active map. */
@@ -244,11 +266,76 @@ export const useWorkspace = defineStore('workspace', {
       else this.rightMode = this.selectedProjectId ? 'project' : 'empty'
     },
 
+    // ---- reminders (one per node) ----
+    async setReminder(
+      mapId: string,
+      projectId: string,
+      nodeUid: string,
+      nodeText: string,
+      due: number,
+      hasTime: boolean,
+    ) {
+      const now = Date.now()
+      let r = this.reminders.find((x) => x.mapId === mapId && x.nodeUid === nodeUid)
+      if (r) {
+        r.due = due
+        r.hasTime = hasTime
+        r.nodeText = nodeText
+        r.projectId = projectId
+        r.updatedAt = now
+      } else {
+        r = { id: uid(), mapId, projectId, nodeUid, nodeText, due, hasTime, createdAt: now, updatedAt: now }
+        this.reminders.push(r)
+      }
+      await db.reminders.put(plain(r))
+    },
+    async clearReminder(mapId: string, nodeUid: string) {
+      const r = this.reminders.find((x) => x.mapId === mapId && x.nodeUid === nodeUid)
+      if (!r) return
+      this.reminders = this.reminders.filter((x) => x.id !== r.id)
+      await db.reminders.delete(r.id)
+    },
+    /** Open a reminder's map and flag its node for the canvas to center on. */
+    requestFocus(mapId: string, nodeUid: string) {
+      this.setActiveMap(mapId)
+      this.focusNodeUid = nodeUid
+    },
+    consumeFocus(): string | null {
+      const u = this.focusNodeUid
+      this.focusNodeUid = null
+      return u
+    },
+    /** Refresh node text + drop reminders whose node no longer exists in a map. */
+    async reconcileMapReminders(mapId: string, tree: MindMapNode) {
+      const mine = this.reminders.filter((r) => r.mapId === mapId)
+      if (!mine.length) return
+      const nodes = collectNodes(tree)
+      const toDelete: string[] = []
+      for (const r of mine) {
+        const text = nodes.get(r.nodeUid)
+        if (text === undefined) {
+          toDelete.push(r.id)
+        } else if (text !== r.nodeText) {
+          r.nodeText = text
+          await db.reminders.put(plain(r))
+        }
+      }
+      if (toDelete.length) {
+        this.reminders = this.reminders.filter((r) => !toDelete.includes(r.id))
+        await db.reminders.bulkDelete(toDelete)
+      }
+    },
+
     /** Re-read everything from IndexedDB (after a workspace import). */
     async reload() {
-      const [projects, maps] = await Promise.all([db.projects.toArray(), db.maps.toArray()])
+      const [projects, maps, reminders] = await Promise.all([
+        db.projects.toArray(),
+        db.maps.toArray(),
+        db.reminders.toArray(),
+      ])
       this.projects = projects
       this.maps = maps
+      this.reminders = reminders
       if (!this.maps.some((m) => m.id === this.activeMapId)) {
         this.activeMapId = this.maps.find((m) => !m.archived)?.id ?? null
       }
@@ -260,4 +347,16 @@ function matchSearch(m: MapDoc, search: string): boolean {
   const q = search.trim().toLowerCase()
   if (!q) return true
   return m.name.toLowerCase().includes(q)
+}
+
+/** Map of node uid -> text across a tree (for reminder reconciliation). */
+function collectNodes(root: MindMapNode): Map<string, string> {
+  const out = new Map<string, string>()
+  const walk = (n: MindMapNode) => {
+    const u = (n?.data as { uid?: string } | undefined)?.uid
+    if (u) out.set(String(u), String(n.data?.text ?? ''))
+    ;(n?.children || []).forEach(walk)
+  }
+  if (root) walk(root)
+  return out
 }

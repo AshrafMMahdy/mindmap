@@ -21,12 +21,15 @@
     "@fontsource-variable/geist-mono": "^5.2.8",
     "@fontsource-variable/hanken-grotesk": "^5.2.8",
     "dexie": "^4.4.3",
+    "html-to-image": "^1.11.13",
     "pinia": "^3.0.4",
     "simple-mind-map": "^0.14.0-fix.2",
+    "turndown": "^7.2.4",
     "vue": "^3.5.35"
   },
   "devDependencies": {
     "@types/node": "^25.9.2",
+    "@types/turndown": "^5.0.6",
     "@vitejs/plugin-vue": "^6.0.7",
     "electron": "^42.3.3",
     "electron-builder": "^26.15.0",
