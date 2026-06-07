@@ -66,6 +66,7 @@ async function clear() {
 
 <style scoped>
 .reminder {
+  container-type: inline-size;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -84,8 +85,14 @@ async function clear() {
 .r-clear { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: inherit; opacity: 0.7; }
 .r-clear:hover { opacity: 1; background: rgba(0, 0, 0, 0.08); }
 .r-edit { display: flex; gap: 6px; }
-.r-date { flex: 1; height: 32px; }
-.r-time { width: 96px; height: 32px; }
+.r-date { flex: 1; min-width: 0; height: 32px; }
+.r-time { width: 110px; height: 32px; }
 .r-time:disabled { opacity: 0.5; }
-.r-set { height: 32px; }
+.r-set { height: 32px; flex: none; }
+/* when the panel is squished, stack into rows instead of cramming */
+@container (max-width: 300px) {
+  .r-edit { flex-wrap: wrap; }
+  .r-date { flex: 1 1 100%; }
+  .r-time { flex: 1; width: auto; }
+}
 </style>
