@@ -21,7 +21,7 @@
       @input="onInput"
       @keydown="onKeydown"
       @paste="onPaste"
-      @click="onClick"
+      @mousedown="onMouseDown"
     />
     <input ref="fileEl" type="file" accept="image/*" hidden @change="onImageFile" />
   </div>
@@ -132,17 +132,36 @@ function onPaste(e: ClipboardEvent) {
   // otherwise allow normal text/html paste
 }
 
-function onClick(e: MouseEvent) {
-  const t = e.target as HTMLElement
-  if (t && t.classList?.contains('ck')) {
-    t.textContent = t.textContent?.trim() === '☐' ? '☑' : '☐'
-    t.classList.toggle('done', t.textContent === '☑')
-    emitChange()
-  }
+// Toggle a checkbox on mousedown (more reliable than click for a
+// contenteditable=false element, and it does not disturb the caret).
+function onMouseDown(e: MouseEvent) {
+  const ck = (e.target as HTMLElement)?.closest?.('.ck') as HTMLElement | null
+  if (!ck) return
+  e.preventDefault()
+  const checked = ck.textContent?.trim() === '☑'
+  ck.textContent = checked ? '☐' : '☑'
+  ck.classList.toggle('done', !checked)
+  emitChange()
 }
 
-// Markdown-style shortcuts when Space is pressed at the start of a line.
+function inList(): boolean {
+  let n: Node | null = window.getSelection()?.anchorNode ?? null
+  while (n && n !== el.value) {
+    if (n.nodeName === 'LI') return true
+    n = n.parentNode
+  }
+  return false
+}
+
+// Tab indents (Shift+Tab outdents) list items; markdown shortcuts on Space.
 function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Tab') {
+    e.preventDefault()
+    if (inList()) document.execCommand(e.shiftKey ? 'outdent' : 'indent')
+    else document.execCommand('insertText', false, '\t')
+    emitChange()
+    return
+  }
   if (e.key !== ' ') return
   const sel = window.getSelection()
   if (!sel || !sel.rangeCount) return
@@ -213,7 +232,12 @@ function escapeAttr(s: string) {
 .rich-body:empty::before { content: attr(data-placeholder); color: var(--text-faint); }
 .rich-body :deep(h2) { font-family: var(--font-display); font-size: 18px; margin: 6px 0 4px; }
 .rich-body :deep(h3) { font-size: 15px; font-weight: 600; margin: 6px 0 3px; }
-.rich-body :deep(ul), .rich-body :deep(ol) { padding-left: 22px; margin: 4px 0; }
+.rich-body :deep(ul) { padding-left: 22px; margin: 4px 0; }
+.rich-body :deep(ul ul) { list-style-type: circle; }
+.rich-body :deep(ul ul ul) { list-style-type: square; }
+.rich-body :deep(ol) { counter-reset: li; list-style: none; padding-left: 22px; margin: 4px 0; }
+.rich-body :deep(ol > li) { counter-increment: li; }
+.rich-body :deep(ol > li)::before { content: counters(li, '.') '. '; color: var(--text-muted); }
 .rich-body :deep(blockquote) { margin: 6px 0; padding: 2px 0 2px 12px; border-left: 3px solid var(--border-strong); color: var(--text-muted); }
 .rich-body :deep(a) { color: var(--accent); }
 .rich-body :deep(img) { max-width: 100%; border-radius: 8px; margin: 4px 0; }

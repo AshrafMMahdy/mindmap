@@ -179,6 +179,7 @@ export const useWorkspace = defineStore('workspace', {
       const m = this.maps.find((x) => x.id === id)
       if (!m) return
       m.name = name
+      if (m.tree?.data) m.tree.data.text = name // root node follows the map name
       m.updatedAt = Date.now()
       await db.maps.put(plain(m))
     },
@@ -246,6 +247,11 @@ export const useWorkspace = defineStore('workspace', {
       const m = this.maps.find((x) => x.id === id)
       if (!m) return
       m.tree = tree
+      // map name follows the root node text when it is edited on the canvas
+      const rootText = tree?.data?.text
+      if (typeof rootText === 'string' && rootText.trim() && rootText !== m.name) {
+        m.name = rootText
+      }
       m.updatedAt = Date.now()
       await db.maps.put(plain(m))
       await this.reconcileMapReminders(id, tree)

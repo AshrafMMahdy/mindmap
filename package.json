@@ -2,7 +2,7 @@
   "name": "mindmap",
   "productName": "MindMap",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "description": "A simple, self-owned mind-map app. Organize maps into projects, edit inline, export to PNG/PDF. Runs as a local web app or unpacked Electron portable — no install required.",
   "license": "MIT",

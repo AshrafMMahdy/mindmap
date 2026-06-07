@@ -241,6 +241,10 @@ export class SimpleMindMapEngine implements MapEngine {
       /* ignore */
     }
   }
+  setRootText(text: string) {
+    const root = this.mm?.renderer?.root
+    if (root) root.setText(text)
+  }
 
   insertImageToActive(img: ImageInput) {
     this.getActiveNodes().forEach((n) => n.setImage(img))

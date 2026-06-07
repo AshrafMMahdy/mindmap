@@ -43,6 +43,10 @@ function toMarkdown(html: string): string {
   return _td.turndown(html || '')
 }
 
+const LIST_CSS =
+  "ol{counter-reset:li;list-style:none;padding-left:22px}ol>li{counter-increment:li}" +
+  "ol>li::before{content:counters(li,'.') '. '}ul{padding-left:22px}ul ul{list-style-type:circle}ul ul ul{list-style-type:square}"
+
 function printPdf(html: string, title: string) {
   const w = window.open('', '_blank')
   if (!w) return
@@ -51,7 +55,7 @@ function printPdf(html: string, title: string) {
       `<style>@page{margin:18mm}body{font-family:system-ui,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#1a1a1a;max-width:760px;margin:0 auto;padding:8px}` +
       `img{max-width:100%}h1{font-size:22px}h2{font-size:18px}h3{font-size:15px}` +
       `blockquote{border-left:3px solid #ccc;margin:8px 0;padding:2px 0 2px 12px;color:#555}a{color:#1c6b53}` +
-      `.ck{margin-right:4px}</style></head><body><h1>${esc(title)}</h1>${html || ''}` +
+      `.ck{margin-right:4px}${LIST_CSS}</style></head><body><h1>${esc(title)}</h1>${html || ''}` +
       `<script>setTimeout(function(){window.focus();window.print()},150)<\/script></body></html>`,
   )
   w.document.close()
@@ -62,7 +66,7 @@ async function pngExport(html: string, fileTitle: string, displayTitle: string) 
   wrap.style.cssText =
     'position:fixed;left:-99999px;top:0;width:640px;padding:28px;background:#ffffff;color:#1a1a1a;' +
     "font-family:system-ui,'Segoe UI',Roboto,sans-serif;line-height:1.6;"
-  wrap.innerHTML = `<h1 style="font-size:22px;margin:0 0 12px">${esc(displayTitle)}</h1>${html || ''}`
+  wrap.innerHTML = `<style>${LIST_CSS}</style><h1 style="font-size:22px;margin:0 0 12px">${esc(displayTitle)}</h1>${html || ''}`
   wrap.querySelectorAll('img').forEach((img) => ((img as HTMLImageElement).style.maxWidth = '100%'))
   document.body.appendChild(wrap)
   try {

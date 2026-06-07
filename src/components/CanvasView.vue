@@ -200,6 +200,15 @@ watch(
   },
 )
 
+// keep the root node text in sync with the map name (rename in the left sidebar)
+watch(
+  () => ws.activeMap?.name,
+  (name) => {
+    if (!engineMounted || !name) return
+    if (engine.getData()?.data?.text !== name) engine.setRootText(name)
+  },
+)
+
 onBeforeUnmount(() => {
   save.flush()
   resizeObserver?.disconnect()

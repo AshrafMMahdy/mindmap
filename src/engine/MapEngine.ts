@@ -89,6 +89,8 @@ export interface MapEngine {
   fit(): void
   /** Center the view on a node (by uid) and select it. */
   focusNode(uid: string): void
+  /** Set the root node's text (kept in sync with the map name). */
+  setRootText(text: string): void
 
   // rich content onto the active node (used by the paste handler)
   insertImageToActive(img: ImageInput): void
